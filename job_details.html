@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ job.title }} - SkillConnect</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+<header class="header">
+    <div>
+        <h1>SkillConnect</h1>
+        <p>Job Details</p>
+    </div>
+</header>
+
+<main class="container">
+
+    <section class="card">
+        <a href="/" class="back-link">← Back to Jobs</a>
+
+        <h2>{{ job.title }}</h2>
+
+        <p><strong>Company:</strong> {{ job.company }}</p>
+        <p><strong>Location:</strong> {{ job.location }}</p>
+
+        <div class="section">
+            <h3>Required Skills</h3>
+
+            <div id="jobSkills" class="skill-list">
+                Loading...
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Matching Candidates</h3>
+
+            <div id="candidateMatches">
+                Loading...
+            </div>
+        </div>
+
+    </section>
+
+</main>
+
+<script>
+const jobId = "{{ job.id }}";
+
+async function loadJobData() {
+    try {
+        const skillsResponse =
+            await fetch(`/api/jobs/${jobId}/skills`);
+
+        const matchesResponse =
+            await fetch(`/api/jobs/${jobId}/matches`);
+
+        if (!skillsResponse.ok || !matchesResponse.ok) {
+            throw new Error("Unable to load job data.");
+        }
+
+        const skills = await skillsResponse.json();
+        const matches = await matchesResponse.json();
+
+        renderSkills(skills);
+        renderMatches(matches);
+
+    } catch (error) {
+        document.getElementById("jobSkills").innerHTML =
+            `<div class="error">${error.message}</div>`;
+
+        document.getElementById("candidateMatches").innerHTML = "";
+    }
+}
+
+
+function renderSkills(skills) {
+    const container = document.getElementById("jobSkills");
+
+    if (!skills.length) {
+        container.innerHTML =
+            '<div class="empty">No required skills found.</div>';
+        return;
+    }
+
+    container.innerHTML = skills.map(skill => `
+        <span class="skill">
+            ${escapeHTML(skill.name)}
+        </span>
+    `).join("");
+}
+
+
+function renderMatches(matches) {
+    const container =
+        document.getElementById("candidateMatches");
+
+    if (!matches.length) {
+        container.innerHTML =
+            '<div class="empty">No matching candidates found.</div>';
+        return;
+    }
+
+    container.innerHTML = matches.map(candidate => `
+        <div class="candidate-card">
+            <h3>${escapeHTML(candidate.name)}</h3>
+
+            <p>
+                Experience:
+                ${escapeHTML(candidate.experience_level)}
+            </p>
+
+            <p class="match-count">
+                Matched skills:
+                ${candidate.matched_count}
+                / ${candidate.total_required}
+            </p>
+
+            <a class="button-link"
+               href="/candidates/${encodeURIComponent(candidate.id)}">
+                View Candidate
+            </a>
+        </div>
+    `).join("");
+}
+
+
+function escapeHTML(value) {
+    const div = document.createElement("div");
+    div.textContent = value ?? "";
+    return div.innerHTML;
+}
+
+
+loadJobData();
+</script>
+
+</body>
+</html>
