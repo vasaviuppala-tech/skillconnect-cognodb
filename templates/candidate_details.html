@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ candidate.name }} - SkillConnect</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+<header class="header">
+    <div>
+        <h1>SkillConnect</h1>
+        <p>Candidate Details</p>
+    </div>
+</header>
+
+<main class="container">
+
+    <section class="card">
+
+        <a href="/" class="back-link">← Back to Jobs</a>
+
+        <h2>{{ candidate.name }}</h2>
+
+        <p>
+            <strong>Email:</strong>
+            {{ candidate.email }}
+        </p>
+
+        <p>
+            <strong>Experience:</strong>
+            {{ candidate.experience_level }}
+        </p>
+
+        <div class="section">
+            <h3>Skills</h3>
+            <div id="candidateSkills">
+                Loading...
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Projects</h3>
+            <div id="candidateProjects">
+                Loading...
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Job Matches Through Project Experience</h3>
+            <div id="projectMatches">
+                Loading...
+            </div>
+        </div>
+
+    </section>
+
+</main>
+
+<script>
+const candidateId = "{{ candidate.id }}";
+
+
+async function loadCandidateData() {
+
+    try {
+
+        const skillsResponse =
+            await fetch(`/api/candidates/${candidateId}/skills`);
+
+        const projectsResponse =
+            await fetch(`/api/candidates/${candidateId}/projects`);
+
+        const matchesResponse =
+            await fetch(`/api/candidates/${candidateId}/job-matches`);
+
+        if (
+            !skillsResponse.ok ||
+            !projectsResponse.ok ||
+            !matchesResponse.ok
+        ) {
+            throw new Error("Unable to load candidate data.");
+        }
+
+        const skills = await skillsResponse.json();
+        const projects = await projectsResponse.json();
+        const matches = await matchesResponse.json();
+
+        renderSkills(skills);
+        renderProjects(projects);
+        renderMatches(matches);
+
+    } catch (error) {
+
+        document.getElementById("candidateSkills").innerHTML =
+            `<div class="error">${escapeHTML(error.message)}</div>`;
+
+        document.getElementById("candidateProjects").innerHTML = "";
+        document.getElementById("projectMatches").innerHTML = "";
+    }
+}
+
+
+function renderSkills(skills) {
+
+    const container =
+        document.getElementById("candidateSkills");
+
+    if (!skills.length) {
+
+        container.innerHTML =
+            '<div class="empty">No skills found.</div>';
+
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="skill-list">
+            ${skills.map(skill => `
+                <span class="skill">
+                    ${escapeHTML(skill.name)}
+                    (${escapeHTML(skill.proficiency)})
+                </span>
+            `).join("")}
+        </div>
+    `;
+}
+
+
+function renderProjects(projects) {
+
+    const container =
+        document.getElementById("candidateProjects");
+
+    if (!projects.length) {
+
+        container.innerHTML =
+            '<div class="empty">No projects found.</div>';
+
+        return;
+    }
+
+    container.innerHTML = projects.map(project => `
+        <div class="candidate-card">
+
+            <h3>${escapeHTML(project.name)}</h3>
+
+            <p>
+                ${escapeHTML(project.description)}
+            </p>
+
+            <p>
+                <strong>Role:</strong>
+                ${escapeHTML(project.role)}
+            </p>
+
+        </div>
+    `).join("");
+}
+
+
+function renderMatches(matches) {
+
+    const container =
+        document.getElementById("projectMatches");
+
+    if (!matches.length) {
+
+        container.innerHTML =
+            '<div class="empty">No project-based job matches found.</div>';
+
+        return;
+    }
+
+    container.innerHTML = matches.map(match => `
+        <div class="candidate-card">
+
+            <h3>
+                ${escapeHTML(match.job_title)}
+            </h3>
+
+            <p>
+                ${escapeHTML(match.company)}
+                •
+                ${escapeHTML(match.location)}
+            </p>
+
+            <p>
+                <strong>Matched through skills:</strong>
+                ${match.matched_via_skills
+                    .map(skill => escapeHTML(skill))
+                    .join(", ")}
+            </p>
+
+            <p>
+                <strong>Matched through projects:</strong>
+                ${match.matched_via_projects
+                    .map(project => escapeHTML(project))
+                    .join(", ")}
+            </p>
+
+        </div>
+    `).join("");
+}
+
+
+function escapeHTML(value) {
+
+    const div = document.createElement("div");
+
+    div.textContent = value ?? "";
+
+    return div.innerHTML;
+}
+
+
+loadCandidateData();
+</script>
+
+</body>
+</html>

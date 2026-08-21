@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillConnect</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+<header class="header">
+    <div>
+        <h1>SkillConnect</h1>
+        <p>Connect opportunities with skills and project experience</p>
+    </div>
+</header>
+
+<main class="container">
+
+    <section class="card">
+
+        <div class="page-intro">
+            <h2>Available Jobs</h2>
+            <p>
+                Explore open roles and discover candidates whose skills
+                and project experience match each opportunity.
+            </p>
+        </div>
+
+        <div id="loading" class="message">
+            Loading jobs...
+        </div>
+
+        <div id="error" class="message error hidden"></div>
+
+        <div id="jobs" class="job-grid"></div>
+
+    </section>
+
+</main>
+
+<script>
+async function loadJobs() {
+    const jobsContainer = document.getElementById("jobs");
+    const loading = document.getElementById("loading");
+    const errorBox = document.getElementById("error");
+
+    try {
+        const response = await fetch("/api/jobs");
+
+        if (!response.ok) {
+            throw new Error("Unable to load jobs.");
+        }
+
+        const jobs = await response.json();
+
+        loading.classList.add("hidden");
+
+        if (!jobs.length) {
+            jobsContainer.innerHTML =
+                '<div class="empty">No jobs are currently available.</div>';
+            return;
+        }
+
+        jobsContainer.innerHTML = "";
+
+        jobs.forEach(job => {
+            const card = document.createElement("div");
+            card.className = "job-card";
+
+            card.innerHTML = `
+                <h3>${escapeHTML(job.title)}</h3>
+
+                <p>
+                    <strong>Company:</strong>
+                    ${escapeHTML(job.company)}
+                </p>
+
+                <p>
+                    <strong>Location:</strong>
+                    ${escapeHTML(job.location)}
+                </p>
+
+                <button onclick="viewJob('${escapeHTML(job.id)}')">
+                    View Job
+                </button>
+            `;
+
+            jobsContainer.appendChild(card);
+        });
+
+    } catch (error) {
+        loading.classList.add("hidden");
+        errorBox.textContent = error.message;
+        errorBox.classList.remove("hidden");
+    }
+}
+
+function viewJob(jobId) {
+    window.location.href = `/jobs/${jobId}`;
+}
+
+function escapeHTML(value) {
+    const div = document.createElement("div");
+    div.textContent = value ?? "";
+    return div.innerHTML;
+}
+
+loadJobs();
+</script>
+
+</body>
+</html>
